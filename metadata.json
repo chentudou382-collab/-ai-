@@ -1,0 +1,6 @@
+{
+  "name": "说说你的故事 · 阿紫音乐工作室",
+  "description": "一个全栈AI音乐歌词定制平台与社交自动化拓客被动收入引擎。面向普通大众用户的定制写歌流程，以及内置AI主动营销、订单核验、财务看板的管理后台。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

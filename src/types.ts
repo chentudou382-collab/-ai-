@@ -66,3 +66,14 @@ export interface SongResult {
   aiNotes: string;
   isRealAi?: boolean;
 }
+
+export interface FeishuMarketingTask {
+  id: string;
+  title: string;
+  desc: string;
+  priority: string;
+  targetRegion: string;
+  status: 'pending' | 'executing' | 'completed';
+  createdAt: string;
+}
+

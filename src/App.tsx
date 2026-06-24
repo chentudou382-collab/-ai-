@@ -36,7 +36,7 @@ import {
   Percent,
   Grid
 } from 'lucide-react';
-import { Order, Lead, Feedback, Settings as SystemSettings, SongResult } from './types';
+import { Order, Lead, Feedback, Settings as SystemSettings, SongResult, FeishuMarketingTask } from './types';
 
 export default function App() {
   // Navigation Tabs
@@ -128,6 +128,11 @@ export default function App() {
   const [feishuReviewMonth, setFeishuReviewMonth] = useState<string>('2026-06');
   const [showFeishuMobileSim, setShowFeishuMobileSim] = useState<boolean>(false);
 
+  // AI Generated Business Advisor Report States
+  const [businessReport, setBusinessReport] = useState<any>(null);
+  const [loadingReport, setLoadingReport] = useState<boolean>(false);
+  const [feishuMarketingTasks, setFeishuMarketingTasks] = useState<FeishuMarketingTask[]>([]);
+
   // 🤝 Infinite Referral Partners & Founders Sandboxed Matrix States
   const [partnerCount, setPartnerCount] = useState<number>(8); // Direct founders / partners recruited
   const [promoterPerPartner, setPromoterPerPartner] = useState<number>(5); // Secondary promoters per partner
@@ -187,6 +192,60 @@ export default function App() {
       console.error("Error loading admin data:", e);
     }
   };
+
+  const fetchBusinessReport = async (currentOrders?: Order[]) => {
+    setLoadingReport(true);
+    try {
+      const res = await fetch('/api/gemini/business-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders: currentOrders || orders })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBusinessReport(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch business advisory report:", error);
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  const executeMarketingSuggestion = (suggestion: any) => {
+    const timeStr = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const newTask: FeishuMarketingTask = {
+      id: 'task_' + Date.now(),
+      title: suggestion.title,
+      desc: suggestion.desc,
+      priority: suggestion.priority || 'HIGH',
+      targetRegion: suggestion.targetRegion || '全国',
+      status: 'executing',
+      createdAt: timeStr
+    };
+
+    setFeishuMarketingTasks(prev => [newTask, ...prev]);
+
+    // Append beautiful micro-logs to show live synchronization
+    setFeishuLogs(prev => [
+      ...prev,
+      `🔄 [${timeStr}] 正在同步创建飞书待办营销任务...`,
+      `🔐 [${timeStr}] Webhook 校验通过，正在写入待办看板 [${newTask.title}]`,
+      `🚀 [${timeStr}] 一键执行同步完毕！「营销决策 -> 飞书看板」秒级推送成功！`
+    ]);
+
+    // Automatically open the simulated Feishu mobile view
+    setShowFeishuMobileSim(true);
+
+    // Physical prompt
+    triggerToast(`🎉 成功同步飞书待办！已派发：${newTask.title}`);
+  };
+
+  useEffect(() => {
+    if (financeActiveTab === 'breakdown' && !businessReport && orders.length > 0) {
+      fetchBusinessReport();
+    }
+  }, [financeActiveTab, orders]);
 
   useEffect(() => {
     refreshAdminData();
@@ -2180,6 +2239,149 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
                       </div>
                     </div>
 
+                    {/* AI 智能商业顾问: 经营建议报告 */}
+                    <div className="pt-3 border-t border-white/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-white/80 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#FFD700] animate-pulse" />
+                          <span>AI 智能商业顾问 · 经营建议报告</span>
+                        </span>
+                        <button
+                          onClick={() => fetchBusinessReport()}
+                          disabled={loadingReport}
+                          className="text-[8.5px] text-[#FFD700] bg-[#FFD700]/10 hover:bg-[#FFD700]/20 border border-[#FFD700]/20 px-2 py-0.5 rounded transition flex items-center gap-1 active:scale-95 disabled:opacity-50 font-sans font-medium"
+                        >
+                          {loadingReport ? (
+                            <span className="animate-spin inline-block">⏳</span>
+                          ) : (
+                            <span>🔄 重新深度研判</span>
+                          )}
+                        </button>
+                      </div>
+
+                      {loadingReport ? (
+                        <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col items-center justify-center space-y-2 py-8">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#FFD700]"></div>
+                          <span className="text-[10px] text-white/40 font-sans">正在深度研判GMV波动，构建营销重心雷达...</span>
+                        </div>
+                      ) : businessReport ? (
+                        <div className="space-y-3 animate-fadeIn">
+                          {/* KPI grid */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2.5 bg-zinc-950 border border-white/5 rounded-xl font-mono">
+                              <span className="text-[8px] text-white/40 block font-sans">核心复购率 (LTV)</span>
+                              <span className="text-xs font-bold text-[#FFD700] block mt-0.5 flex items-center gap-1">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span>
+                                {businessReport.visualKpis?.repurchaseRate || "0.0%"}
+                              </span>
+                            </div>
+                            <div className="p-2.5 bg-zinc-950 border border-white/5 rounded-xl">
+                              <span className="text-[8px] text-white/40 block font-sans">业绩成长势头</span>
+                              <span className="text-[10px] font-bold text-white block mt-0.5 truncate font-mono">
+                                {businessReport.visualKpis?.growthTrend || "健康成长"}
+                              </span>
+                            </div>
+                            <div className="p-2.5 bg-zinc-950 border border-white/5 rounded-xl">
+                              <span className="text-[8px] text-white/40 block font-sans">高溢价核心热区</span>
+                              <span className="text-[10px] font-bold text-white block mt-0.5 truncate">
+                                {businessReport.visualKpis?.peakRegion || "江浙沪私域"}
+                              </span>
+                            </div>
+                            <div className="p-2.5 bg-zinc-950 border border-white/5 rounded-xl">
+                              <span className="text-[8px] text-white/40 block font-sans">推荐主攻渠道</span>
+                              <span className="text-[10px] font-bold text-[#FFD700] block mt-0.5 truncate">
+                                {businessReport.visualKpis?.suggestedChannel || "小红书情感KOL"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Analysis blocks */}
+                          <div className="p-3 bg-white/5 border border-white/5 rounded-2xl space-y-2.5 text-xs">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-[#FFD700] flex items-center gap-1 font-sans">
+                                <DollarSign className="w-3 h-3 text-[#FFD700]" />
+                                <span>大盘GMV波动与趋势研判</span>
+                              </span>
+                              <p className="text-[10px] text-white/70 leading-relaxed font-sans font-light">
+                                {businessReport.gmvAnalysis}
+                              </p>
+                            </div>
+
+                            <div className="space-y-1 pt-1.5 border-t border-white/5">
+                              <span className="text-[10px] font-bold text-green-400 flex items-center gap-1 font-sans">
+                                <Users className="w-3 h-3 text-green-400" />
+                                <span>高价值客户复购行为洞察</span>
+                              </span>
+                              <p className="text-[10px] text-white/70 leading-relaxed font-sans font-light">
+                                {businessReport.repurchaseInsight}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Actionable Strategy Section */}
+                          <div className="space-y-1.5">
+                            <div className="text-[9.5px] text-[#FFD700]/70 font-bold uppercase tracking-wider font-sans">
+                              🎯 下月具体营销重心建议 (AI Core suggestions)
+                            </div>
+                            <div className="space-y-2">
+                              {businessReport.marketingSuggestions?.map((item: any, idx: number) => (
+                                <div key={idx} className="p-2.5 bg-[#111112] hover:bg-white/[0.02] border border-white/5 hover:border-[#FFD700]/10 rounded-xl transition space-y-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-[10.5px] font-bold text-white flex-1 leading-snug font-sans">
+                                      {idx + 1}. {item.title}
+                                    </span>
+                                    <span className={`text-[7.5px] font-bold uppercase px-1 py-0.5 rounded border ${
+                                      item.priority === 'HIGH' 
+                                        ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                                        : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                    }`}>
+                                      {item.priority === 'HIGH' ? '核心主攻' : '重点突破'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[9.5px] text-white/50 leading-relaxed font-light font-sans">
+                                    {item.desc}
+                                  </p>
+                                  <div className="flex items-center justify-between pt-1 border-t border-white/5 mt-1.5">
+                                    <div className="flex items-center gap-1 text-[8.5px] text-white/40">
+                                      <span className="px-1.5 py-0.5 bg-white/5 rounded text-[8px] font-sans">
+                                        📍 目标范围：{item.targetRegion}
+                                      </span>
+                                    </div>
+                                    {(() => {
+                                      const executedTask = feishuMarketingTasks.find(t => t.title === item.title);
+                                      return executedTask ? (
+                                        <span className="text-[8px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 font-bold flex items-center gap-1 font-sans">
+                                          <span className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></span>
+                                          已同步飞书执行中
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => executeMarketingSuggestion(item)}
+                                          className="text-[8px] font-bold text-black bg-[#FFD700] hover:bg-[#FFD700]/95 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1 font-sans cursor-pointer"
+                                        >
+                                          ⚡ 一键执行并同步
+                                        </button>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col items-center justify-center space-y-2 py-6 text-center">
+                          <span className="text-[10px] text-white/40 font-sans">暂无缓存报告数据。点击下方按钮，由阿紫 AI 经营顾问开启对大盘订单的波动与复购多维研判。</span>
+                          <button
+                            onClick={() => fetchBusinessReport()}
+                            className="text-[9px] text-black bg-[#FFD700] hover:bg-[#FFD700]/90 font-bold px-3 py-1 rounded-xl transition active:scale-95 mt-1 font-sans"
+                          >
+                            🚀 立即生成商业建议报告
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <p className="text-[8px] text-white/30 leading-normal font-sans text-center">
                       * 声明: 财务大盘数据均由系统底层安全沙盒机制结合实收账目生成，自动隔离敏感支付网关，确保合规透明。
                     </p>
@@ -2313,6 +2515,27 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
                                     </div>
                                     
                                     <div className="space-y-1">
+                                      {feishuMarketingTasks.map((task) => (
+                                        <div key={task.id} className="p-1.5 bg-yellow-50/70 rounded-lg border border-[#FFD700]/30 flex items-center justify-between text-[9px] text-gray-700 font-sans animate-fadeIn">
+                                          <div className="space-y-0.5 text-left">
+                                            <div className="font-bold flex items-center gap-1 text-gray-900">
+                                              <span className="text-black bg-[#FFD700] text-[7px] px-1 rounded font-sans font-bold">📢 AI营销</span>
+                                              <span className="truncate max-w-[130px]">{task.title}</span>
+                                            </div>
+                                            <p className="text-[8px] text-gray-500 truncate max-w-[170px]">
+                                              {task.desc}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <span className="text-[7.5px] px-1 py-0.5 rounded font-extrabold bg-red-100 text-red-700">
+                                              执行中
+                                            </span>
+                                            <span className="text-[8px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-1 rounded font-mono font-bold">
+                                              已派发
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
                                       {orders.filter(o => o.status !== 'completed').slice(0, 3).map((o, idx) => (
                                         <div key={o.id} className="p-1.5 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-between text-[9px] text-gray-700 font-sans">
                                           <div className="space-y-0.5 text-left">

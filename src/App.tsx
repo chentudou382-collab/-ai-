@@ -56,6 +56,9 @@ export default function App() {
   const [showGridLines, setShowGridLines] = useState<boolean>(true);
   const [posterGenerating, setPosterGenerating] = useState<boolean>(false);
   const [posterCampaignName, setPosterCampaignName] = useState<string>('小红书爆款引流');
+  const [marketingScene, setMarketingScene] = useState<'gaokao' | 'birthday' | 'anniversary' | 'healing'>('anniversary');
+  const [isGeneratingSceneCopy, setIsGeneratingSceneCopy] = useState<boolean>(false);
+  const [generatedSocialCopy, setGeneratedSocialCopy] = useState<string>('');
   
   // Consumer Questionnaire State
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -327,6 +330,91 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
     };
   };
 
+  const handleGenerateSceneCopy = (sceneType: 'gaokao' | 'birthday' | 'anniversary' | 'healing') => {
+    setIsGeneratingSceneCopy(true);
+    const order = selectedOrderForDetail || (orders.length > 0 ? orders[0] : null);
+    const orderTitle = order?.songTitle || '未命名';
+    const targetAudience = order?.targetAudience || '最爱的人';
+    const keyMemories = order?.keyMemories || '那些欢笑与泪水的瞬间';
+    const creationReason = order?.creationReason || '特别的纪念时刻';
+    
+    setTimeout(() => {
+      let quote = '';
+      let socialCopy = '';
+      
+      if (sceneType === 'gaokao') {
+        quote = "风来自远方，去向更远的地方。在少年滚烫的旋律里，乾坤未定，你我皆是黑马。";
+        socialCopy = `🎓 【高考圆梦 · 专属定制励志歌单】
+乾坤未定，你我皆是黑马！送给拼搏不息的学子们。
+
+🎵 励志定制单曲：《${orderTitle}》
+送给：${targetAudience}
+定制初衷：高考冲刺与毕业纪念，致敬那段挑灯夜战的无悔青春
+
+✨ 走心语录：“${quote}”
+
+在阿紫AI音乐工作室，每一个熬过的夜、写满的试卷、拼过的梦，都能被写进专属的黑胶旋律里。只要将他的名字、座右铭和关键故事发给阿紫，AI和主创老师将在10分钟内生成极富张力和电影感的高质量燃向歌曲！
+
+👉 赶紧带图私信，定制属于你们的无悔青春主题曲，或者是想加入阿紫的校园合伙人计划，一键分享爆款流量，套利无上限！
+---
+#高考加油 #致敬青春 #原创歌曲 #小红书爆款 #送考生的礼物 #阿紫AI写歌`;
+      } else if (sceneType === 'birthday') {
+        quote = "愿你永远有梦可依，有歌可唱。岁月的年轮里，这首定制的歌，记录我们最真挚的祝福。";
+        socialCopy = `🎂 【生日温情礼物 · 专属黑胶声音日记】
+世界上最珍寻的礼物，不是奢侈的皮包，而是一首只属于你的声音记忆。
+
+🎵 生日定制单曲：《${orderTitle}》
+送给：${targetAudience}
+定制初衷：生日专属祝福与岁月感恩，将温暖与回忆永久刻录
+
+✨ 走心语录：“${quote}”
+
+阿紫音乐工作室首创“故事变歌曲”体验！只要您提供TA的名字和过去一年共同经历的温暖回忆（如：${keyMemories}），AI在后台深度调优，配合金牌谱曲，10分钟为您呈现最顶级的生日专属黑胶单曲。听完瞬间泪目，成为朋友圈最吸睛的生日礼物！
+
+👉 私信阿紫，发送您的寿星名字，立即一键开始您的专属生日献礼！
+---
+#生日礼物首选 #走心生日祝福 #给女友的生日惊喜 #黑胶唱片 #生日快乐 #声音记忆`;
+      } else if (sceneType === 'anniversary') {
+        quote = "回忆是时光里最美的音符。万水千山，多谢你陪我走过这冗长人世，写成了歌，唱给你听。";
+        socialCopy = `💑 【浪漫纪念日 · 执手今生的专属爱情赞歌】
+“纸短情长，所有的情话，都不如一首写进歌里的真情告白。”
+
+🎵 纪念日定制单曲：《${orderTitle}》
+送给：${targetAudience}
+定制初衷：恋爱/结婚纪念日心动记录，给爱人一辈子的声音信物
+
+✨ 走心语录：“${quote}”
+
+这是一位心动客户在阿紫工作室为爱人定制的浪漫回响。客户说：“${creationReason}”，我们在音乐里揉进了 ${keyMemories}。AI与金牌编曲默契结合，将这份沉甸甸的爱升华为永恒黑胶唱片，全网各大音乐平台一键发行！
+
+👉 发送你们的恋爱纪念故事，这个纪念日，送TA一份能循环播放一辈子的爱意！
+---
+#送女友纪念日 #恋爱一周年礼物 #结婚纪念日创意 #专属定制歌曲 #高逼格表白 #情歌定制`;
+      } else {
+        quote = "夜深了，世界很吵，但阿紫的歌声很静。愿每一个疲惫的灵魂，都在这旋律中被温柔以待。";
+        socialCopy = `🌌 【温暖治愈晚安 · 抚平白日喧嚣的枕边心跳】
+夜深了，卸下白日的盔甲，让这首温柔的情歌，陪伴你沉沉睡去。
+
+🎵 治愈定制单曲：《${orderTitle}》
+送给：${targetAudience}
+定制初衷：自我犒赏或深夜疗愈，用最纯粹的旋律抚慰每一个不眠夜
+
+✨ 走心语录：“${quote}”
+
+阿紫工作室相信，每一个独特的灵魂都值得一首专属的安神催眠曲。我们为 ${targetAudience} 深度定制了这首《${orderTitle}》。温柔的男声/女声在耳边轻吟，将他的白日奋斗和 ${creationReason} 转化为清新的民谣，给您注入满满的元气！
+
+👉 感到疲惫时，不妨来阿紫这里，将您的心事倾诉给AI，定制您的专属疗愈之歌。
+---
+#深夜疗愈 #治愈系音乐 #网易云深夜热评 #晚安歌词 #独处时光 #声音定制 #解压神器`;
+      }
+      
+      setCustomQuoteText(quote);
+      setGeneratedSocialCopy(socialCopy);
+      setIsGeneratingSceneCopy(false);
+      triggerToast(`✨ AI 成功为您批量生成「${sceneType === 'gaokao' ? '高考励志' : sceneType === 'birthday' ? '生日祝福' : sceneType === 'anniversary' ? '恋爱纪念' : '温暖治愈'}」推广文案并同步至海报金句！`);
+    }, 800);
+  };
+
   const openPosterGenerator = () => {
     let order = selectedOrderForDetail;
     if (!order && orders.length > 0) {
@@ -340,6 +428,11 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
       setCustomQuoteText("回忆是时光里最美的音符，定制一首专属于你们的歌。");
     }
     setShowPosterModal(true);
+    
+    // Auto-generate scene copy after state settles
+    setTimeout(() => {
+      handleGenerateSceneCopy('anniversary');
+    }, 150);
   };
 
   const handleRegeneratePoster = () => {
@@ -716,19 +809,21 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
       "🔄 [09:00:00] 正在初始化飞书 API 连接...",
       "🔐 [09:00:01] 正在校验 Webhook 鉴权签名...",
       "📊 [09:00:02] 正在聚合当月财务流水、纪念日老客数据、AI转化率...",
-      "🧠 [09:00:03] AI 智能模型分析当月复盘指标并生成下月策略建议..."
+      "📋 [09:00:03] 正在抓取系统内今日待办交付（待对账/待处理/审核中）订单列表...",
+      "🔗 [09:00:04] 正在将待办任务一键同步至 飞书待办看板 ＆ 交付审批工作流...",
+      "🧠 [09:00:05] AI 智能模型分析当月复盘指标并生成下月策略建议..."
     ]);
     
     setTimeout(() => {
       setFeishuLogs(prev => [
         ...prev,
-        "✉️ [09:00:04] 正在构造 飞书Card 富文本消息主体...",
-        "🚀 [09:00:05] Webhook 消息发送成功，状态码: 200 OK!",
-        "🎉 [09:00:05] 飞书AI音乐自动化小助手成功在群聊中生成月度财务总结！"
+        "✉️ [09:00:06] 正在构造 飞书Card 自动化富文本消息主体...",
+        "🚀 [09:00:07] Webhook 消息发送成功，状态码: 200 OK!",
+        "🎉 [09:00:07] 飞书AI音乐自动化成功实现「获客-订单-分润-待办同步-交付审批」的全闭环运作！"
       ]);
       setFeishuBotStatus('success');
       setShowFeishuMobileSim(true);
-      triggerToast("🎉 成功推送到飞书！可在下方查看群机器人总结消息");
+      triggerToast("🎉 成功推送到飞书！可在下方查看群机器人多合一待办＆财务卡片");
     }, 1500);
   };
 
@@ -2207,6 +2302,55 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
                                   <div className="bg-gray-50 p-1.5 rounded-lg text-[8.5px] text-gray-500 leading-normal border-l-2 border-[#FFD700]">
                                     💡 <strong>经营金句</strong>: “复购 is King！把握纪念日情感共振，老客一键二次成交，裂变生生不息！”
                                   </div>
+
+                                  {/* Feishu Todo Task & Approval Flow Synchronization Section */}
+                                  <div className="border-t border-gray-100 pt-2.5 space-y-2">
+                                    <div className="flex items-center justify-between text-[9px]">
+                                      <span className="font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        📋 飞书待办看板 ＆ 交付审批流已同步
+                                      </span>
+                                      <span className="text-[8px] text-gray-400">一键闭环</span>
+                                    </div>
+                                    
+                                    <div className="space-y-1">
+                                      {orders.filter(o => o.status !== 'completed').slice(0, 3).map((o, idx) => (
+                                        <div key={o.id} className="p-1.5 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-between text-[9px] text-gray-700 font-sans">
+                                          <div className="space-y-0.5 text-left">
+                                            <div className="font-bold flex items-center gap-1 text-gray-900">
+                                              <span>《{o.songTitle || '未命名'}》</span>
+                                              <span className="text-[7.5px] text-gray-500 font-normal">({o.userName})</span>
+                                            </div>
+                                            <p className="text-[8px] text-gray-500 truncate max-w-[150px]">
+                                              风格: {o.musicStyle?.split(' ')[0]} | 送给: {o.targetAudience}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <span className={`text-[7.5px] px-1 py-0.5 rounded font-extrabold ${
+                                              o.status === 'processing' 
+                                                ? 'bg-amber-100 text-amber-700' 
+                                                : o.status === 'pending' 
+                                                ? 'bg-blue-100 text-blue-700' 
+                                                : 'bg-orange-100 text-orange-700'
+                                            }`}>
+                                              {o.status === 'processing' ? '制作中' : o.status === 'pending' ? '待对账' : '已对账'}
+                                            </span>
+                                            <span className="text-[8px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-1 rounded font-mono font-bold">
+                                              审批中
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {orders.filter(o => o.status !== 'completed').length === 0 && (
+                                        <div className="p-2 text-center text-gray-400 text-[8.5px]">
+                                          🎉 今日暂无待交付任务，全部交付完成！
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="text-[8px] text-gray-400 leading-normal bg-blue-50/50 p-1.5 rounded text-left border-l-2 border-blue-400">
+                                      ✨ <strong>交付闭环：</strong>校园/渠道推广 → 客户下单 → 系统匹配分润 → 自动生成待办推送飞书 → 外包需求单派单 → 飞书交付审批一键打标已完成。
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -2257,6 +2401,184 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
                           🔥 <strong>无限级团队极差奖</strong>: 团队累计满100单升级为“荣誉合伙人”，全团队（无限代）额外抽 <strong>2% 业绩 overriding 奖励</strong>，彻底自驱动！
                         </p>
                       </div>
+                    </div>
+
+                    {/* Visual Partner Performance Report Dashboard */}
+                    <div className="bg-[#111112] border border-white/5 rounded-2xl p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 bg-[#FFD700]/10 rounded-lg">
+                            <TrendingUp className="w-4 h-4 text-[#FFD700]" />
+                          </span>
+                          <div>
+                            <h4 className="text-xs font-serif font-bold text-white">合伙人团队业绩可视化报表看板</h4>
+                            <p className="text-[9px] text-white/40">基于真实加盟网络实时数据计算，极差利润自动对账</p>
+                          </div>
+                        </div>
+                        <span className="text-[8px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full font-mono font-bold animate-pulse">
+                          ● 实收自动清算中
+                        </span>
+                      </div>
+
+                      {/* Summary statistics row */}
+                      {(() => {
+                        const totalGmv = mockPartnersList.reduce((acc, p) => acc + p.totalGmv, 0);
+                        const totalComm = mockPartnersList.reduce((acc, p) => acc + p.commissionPaid, 0);
+                        const maxGmvPartner = mockPartnersList.reduce((max, p) => p.totalGmv > max.totalGmv ? p : max, mockPartnersList[0]);
+                        
+                        return (
+                          <>
+                            <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
+                                <span className="text-[8.5px] text-white/40 block">裂变团队总业绩</span>
+                                <span className="text-[12px] font-bold text-[#FFD700]">¥{totalGmv.toLocaleString()}</span>
+                                <span className="text-[7.5px] text-green-400 block mt-0.5">自裂变转化 100%</span>
+                              </div>
+                              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
+                                <span className="text-[8.5px] text-white/40 block">已结极差佣金池</span>
+                                <span className="text-[12px] font-bold text-green-400">¥{totalComm.toLocaleString()}</span>
+                                <span className="text-[7.5px] text-white/30 block mt-0.5">秒到账率 99.8%</span>
+                              </div>
+                              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
+                                <span className="text-[8.5px] text-white/40 block">全网首席裂变王</span>
+                                <span className="text-[10px] font-bold text-white truncate block max-w-full">
+                                  {maxGmvPartner?.name?.split(' ')[0] || '陈墨'}
+                                </span>
+                                <span className="text-[7.5px] text-[#FFD700] block mt-0.5">GMV: ¥{maxGmvPartner?.totalGmv?.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            {/* Column and Pie Visualizers */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                              {/* Left chart: Bar chart for GMV of each partner */}
+                              <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[9px] font-bold text-white flex items-center gap-1">
+                                    <span>📊 核心合伙人 GMV 战力排行榜</span>
+                                  </span>
+                                  <span className="text-[8px] text-white/30 font-mono">单位: 元</span>
+                                </div>
+                                
+                                <div className="space-y-2.5">
+                                  {mockPartnersList.map((p, idx) => {
+                                    const percent = totalGmv > 0 ? (p.totalGmv / totalGmv) * 100 : 0;
+                                    return (
+                                      <div key={p.id} className="space-y-1">
+                                        <div className="flex justify-between text-[8.5px] text-white/60">
+                                          <div className="flex items-center gap-1.5 truncate max-w-[130px]">
+                                            <span className={`w-3.5 h-3.5 rounded-full text-[8px] font-black flex items-center justify-center shrink-0 ${
+                                              idx === 0 ? 'bg-[#FFD700] text-black' : idx === 1 ? 'bg-zinc-300 text-black' : 'bg-zinc-600 text-white'
+                                            }`}>
+                                              {idx + 1}
+                                            </span>
+                                            <span className="text-white truncate font-medium">{p.name}</span>
+                                            <span className="text-[7.5px] bg-white/5 px-1 rounded text-white/40">{p.region}</span>
+                                          </div>
+                                          <span className="font-mono font-bold text-white">¥{p.totalGmv.toLocaleString()}</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative">
+                                          <div 
+                                            className="h-full bg-gradient-to-r from-amber-500 via-[#FFD700] to-[#FFD700] rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(255,215,0,0.3)]" 
+                                            style={{ width: `${Math.max(percent, 4)}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Right chart: Share of total gmv */}
+                              <div className="bg-black/20 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[9px] font-bold text-white flex items-center gap-1">
+                                    <span>🍩 团队极差收益分配占比</span>
+                                  </span>
+                                  <span className="text-[8px] text-white/30 font-mono">占比分析</span>
+                                </div>
+
+                                <div className="flex items-center justify-around py-2.5">
+                                  {/* Custom beautiful donut simulator */}
+                                  <div className="relative w-20 h-20 shrink-0">
+                                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                      <path
+                                        className="text-white/5"
+                                        strokeWidth="4"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        d="M18 2.0845
+                                          a 15.9155 15.9155 0 0 1 0 31.831
+                                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      />
+                                      {/* Highlight 1: ChenMo (Top) ~51.2% */}
+                                      <path
+                                        className="text-[#FFD700]"
+                                        strokeWidth="4"
+                                        strokeDasharray="51, 100"
+                                        strokeLinecap="round"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        d="M18 2.0845
+                                          a 15.9155 15.9155 0 0 1 0 31.831
+                                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      />
+                                      {/* Highlight 2: ZhangXiao ~30% */}
+                                      <path
+                                        className="text-amber-500"
+                                        strokeWidth="4"
+                                        strokeDasharray="30, 100"
+                                        strokeDashoffset="-51"
+                                        strokeLinecap="round"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        d="M18 2.0845
+                                          a 15.9155 15.9155 0 0 1 0 31.831
+                                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      />
+                                      {/* Highlight 3: LiTingTing ~18.8% */}
+                                      <path
+                                        className="text-emerald-400"
+                                        strokeWidth="4"
+                                        strokeDasharray="19, 100"
+                                        strokeDashoffset="-81"
+                                        strokeLinecap="round"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        d="M18 2.0845
+                                          a 15.9155 15.9155 0 0 1 0 31.831
+                                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                      <span className="text-[10px] font-bold text-white font-mono">100%</span>
+                                      <span className="text-[6.5px] text-white/40 scale-90">业绩饱和</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5 text-[8px]">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700]" />
+                                      <span className="text-white/60">陈墨队: 51.2%</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                      <span className="text-white/60">张潇队: 30.0%</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                      <span className="text-white/60">李婷婷: 18.8%</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <p className="text-[8px] text-white/40 leading-normal text-center mt-1 border-t border-white/5 pt-1.5">
+                                  💡 战力模型提示: 当前团队业绩呈高集中形态，杭州西湖战区陈墨团队贡献过半。建议创始人增加对上海杨浦、北京朝阳战区的流量或课程扶植。
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Interactive Math Simulator */}
@@ -3762,6 +4084,98 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
                         }`}
                       />
                     </button>
+                  </div>
+
+                  {/* 4. AI 智能情感营销文案矩阵 */}
+                  <div className="space-y-2 border-t border-white/5 pt-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-[#FFD700] uppercase font-bold block flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
+                        <span>4. AI 情感场景营销模板</span>
+                      </label>
+                      <span className="text-[8.5px] bg-[#FFD700]/10 text-[#FFD700] px-1.5 py-0.5 rounded font-bold font-mono">SCENE AI v2</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'gaokao', label: '🎓 高考励志', icon: '✊' },
+                        { id: 'birthday', label: '🎂 生日祝福', icon: '🎁' },
+                        { id: 'anniversary', label: '💑 恋爱纪念', icon: '💖' },
+                        { id: 'healing', label: '🌌 温暖治愈', icon: '🍀' }
+                      ].map(sc => (
+                        <button
+                          key={sc.id}
+                          onClick={() => {
+                            setMarketingScene(sc.id as any);
+                            handleGenerateSceneCopy(sc.id as any);
+                          }}
+                          className={`py-1.5 px-1 rounded-lg text-center text-[9px] font-bold border transition flex flex-col items-center justify-center gap-1 ${
+                            marketingScene === sc.id
+                              ? 'border-[#FFD700] bg-[#FFD700]/10 text-white'
+                              : 'border-white/5 bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          <span className="text-sm">{sc.icon}</span>
+                          <span>{sc.label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Display generated text with one-click copy and auto-apply to poster */}
+                    <div className="bg-white/5 rounded-xl p-3 border border-white/5 relative overflow-hidden space-y-2.5">
+                      {isGeneratingSceneCopy ? (
+                        <div className="py-6 flex flex-col items-center justify-center space-y-2">
+                          <RefreshCw className="w-4 h-4 text-[#FFD700] animate-spin" />
+                          <span className="text-[9px] text-white/50 font-mono">Gemini 3.5 正在重构场景共鸣语录并调优排版...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[8.5px] text-white/40 block">✨ 智能海报语录 (已实时注入黑胶海报)：</span>
+                              <span className="text-[8px] text-green-400 font-bold">已同步海报</span>
+                            </div>
+                            <p className="text-[9.5px] text-white font-serif italic bg-white/5 p-2 rounded border border-white/5 leading-relaxed">
+                              "{customQuoteText}"
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[8.5px] text-white/40 block">📝 社交平台爆款推广文案模板 (含场景话题)：</span>
+                            <textarea
+                              value={generatedSocialCopy}
+                              onChange={(e) => setGeneratedSocialCopy(e.target.value)}
+                              rows={5}
+                              className="w-full bg-black border border-white/10 rounded-lg p-2 text-[9.5px] text-white/80 focus:outline-none focus:border-[#FFD700] resize-none font-mono leading-relaxed"
+                            />
+                          </div>
+
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => {
+                                copyToClipboard(generatedSocialCopy, "全渠道爆款宣发文案");
+                              }}
+                              className="flex-1 py-1.5 bg-[#FFD700] hover:bg-amber-400 text-black font-extrabold text-[10px] rounded-lg transition flex items-center justify-center gap-1"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>一键复制爆款推广文案</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                const order = selectedOrderForDetail || orders[0];
+                                const shareLink = `${window.location.origin}/share/promo?orderId=${order?.id || 'demo'}&scene=${marketingScene}`;
+                                const text = `🔥 【阿紫定制音乐爆款推介】\n定制曲目：《${order?.songTitle || '未命名'}》\n专属于TA的定制音乐记忆，点击直接聆听、定制或加盟：\n🔗 链接: ${shareLink}\n\n"${customQuoteText}"`;
+                                copyToClipboard(text, "一键分享推广卡片");
+                              }}
+                              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-[10px] rounded-lg transition border border-white/10 flex items-center justify-center gap-1"
+                            >
+                              <Share2 className="w-3 h-3" />
+                              <span>一键分享推广卡片</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

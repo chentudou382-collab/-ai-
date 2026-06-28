@@ -77,3 +77,13 @@ export interface FeishuMarketingTask {
   createdAt: string;
 }
 
+export interface OutreachRecord {
+  id: string;
+  customerName: string;
+  outreachChannel: string;
+  outreachTemplate: string;
+  sentTime: string;
+  hasReplied: boolean;
+  isConverted: boolean;
+}
+

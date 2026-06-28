@@ -36,7 +36,7 @@ import {
   Percent,
   Grid
 } from 'lucide-react';
-import { Order, Lead, Feedback, Settings as SystemSettings, SongResult, FeishuMarketingTask } from './types';
+import { Order, Lead, Feedback, Settings as SystemSettings, SongResult, FeishuMarketingTask, OutreachRecord } from './types';
 
 export default function App() {
   // Navigation Tabs
@@ -132,6 +132,65 @@ export default function App() {
   const [businessReport, setBusinessReport] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState<boolean>(false);
   const [feishuMarketingTasks, setFeishuMarketingTasks] = useState<FeishuMarketingTask[]>([]);
+  const [outreachRecords, setOutreachRecords] = useState<OutreachRecord[]>([
+    {
+      id: 'outreach_1',
+      customerName: '张先生 (上海高净值)',
+      outreachChannel: '微信私域',
+      outreachTemplate: '针对高价值复购用户，推行「周年情感复刻计划」',
+      sentTime: '10:15:30',
+      hasReplied: true,
+      isConverted: true
+    },
+    {
+      id: 'outreach_2',
+      customerName: '小林 (广州异地情侣)',
+      outreachChannel: '小红书DM',
+      outreachTemplate: '利用异地恋「双城故事」及高铁票场景，重仓小红书KOL情感投放',
+      sentTime: '11:20:45',
+      hasReplied: true,
+      isConverted: false
+    },
+    {
+      id: 'outreach_3',
+      customerName: '陈女士 (北京校园老客)',
+      outreachChannel: '微信私域',
+      outreachTemplate: '针对高价值复购用户，推行「周年情感复刻计划」',
+      sentTime: '13:05:12',
+      hasReplied: false,
+      isConverted: false
+    },
+    {
+      id: 'outreach_4',
+      customerName: '王同学 (华东高校)',
+      outreachChannel: '微信私域',
+      outreachTemplate: '上海徐汇等长三角地区高品质「专属版」精准拉新',
+      sentTime: '14:40:00',
+      hasReplied: true,
+      isConverted: true
+    },
+    {
+      id: 'outreach_5',
+      customerName: '周女士 (上海闵行老客)',
+      outreachChannel: '小红书DM',
+      outreachTemplate: '上海徐汇等长三角地区高品质「专属版」精准拉新',
+      sentTime: '15:10:00',
+      hasReplied: true,
+      isConverted: true
+    }
+  ]);
+
+  // Outreach Form States
+  const [outreachCustName, setOutreachCustName] = useState<string>('');
+  const [outreachChannel, setOutreachChannel] = useState<string>('微信私域');
+  const [outreachTemplate, setOutreachTemplate] = useState<string>('针对高价值复购用户，推行「周年情感复刻计划」');
+
+  // AI Copywriting Optimization States
+  const [optimizingTemplate, setOptimizingTemplate] = useState<string | null>(null);
+  const [loadingOptimization, setLoadingOptimization] = useState<boolean>(false);
+  const [optimizedAlternatives, setOptimizedAlternatives] = useState<Array<{ title: string; desc: string }>>([]);
+
+
 
   // 🤝 Infinite Referral Partners & Founders Sandboxed Matrix States
   const [partnerCount, setPartnerCount] = useState<number>(8); // Direct founders / partners recruited
@@ -224,7 +283,20 @@ export default function App() {
       createdAt: timeStr
     };
 
+    const names = ["黄总 (上海创意)", "刘先生 (北京校友)", "张女士 (杭州老客)", "吴同学 (南京高校)", "马先生 (广州异地)", "高女士 (深圳创业者)"];
+    const randomName = names[Math.floor(Math.random() * names.length)];
+    const newOutreach: OutreachRecord = {
+      id: 'outreach_' + Date.now(),
+      customerName: randomName,
+      outreachChannel: Math.random() > 0.4 ? '微信私域' : '小红书DM',
+      outreachTemplate: suggestion.title,
+      sentTime: timeStr,
+      hasReplied: false,
+      isConverted: false
+    };
+
     setFeishuMarketingTasks(prev => [newTask, ...prev]);
+    setOutreachRecords(prev => [newOutreach, ...prev]);
 
     // Append beautiful micro-logs to show live synchronization
     setFeishuLogs(prev => [
@@ -240,6 +312,183 @@ export default function App() {
     // Physical prompt
     triggerToast(`🎉 成功同步飞书待办！已派发：${newTask.title}`);
   };
+
+  const handleExportOutreachCSV = () => {
+    // Group records by template
+    const statsMap: { [key: string]: { total: number; replied: number; converted: number } } = {};
+    outreachRecords.forEach(rec => {
+      const template = rec.outreachTemplate || '微信日常温情周年关怀';
+      if (!statsMap[template]) {
+        statsMap[template] = { total: 0, replied: 0, converted: 0 };
+      }
+      statsMap[template].total++;
+      if (rec.hasReplied) statsMap[template].replied++;
+      if (rec.isConverted) statsMap[template].converted++;
+    });
+
+    // Build CSV contents
+    const headers = "话术模板,已发送数,回复数,成交数,回复率,转化率\n";
+    const rows = Object.entries(statsMap).map(([template, stats]) => {
+      const convRate = stats.total > 0 ? ((stats.converted / stats.total) * 100).toFixed(1) : "0.0";
+      const replyRate = stats.total > 0 ? ((stats.replied / stats.total) * 100).toFixed(1) : "0.0";
+      
+      // Clean comma inside template titles to avoid CSV splitting bugs
+      const cleanedTemplate = template.replace(/,/g, "，");
+      return `"${cleanedTemplate}",${stats.total},${stats.replied},${stats.converted},${replyRate}%,${convRate}%`;
+    }).join("\n");
+
+    const csvContent = "\uFEFF" + headers + rows; // Add UTF-8 BOM for Excel compatibility
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `阿紫音乐工作室_营销触达效果追踪_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerToast("📊 转化追踪 CSV 报表已成功生成并下载！");
+  };
+
+  const handleTriggerTemplateOptimization = async (templateTitle: string) => {
+    setOptimizingTemplate(templateTitle);
+    setLoadingOptimization(true);
+    setOptimizedAlternatives([]);
+
+    // Find current description if any
+    let currentDesc = "";
+    if (businessReport && businessReport.marketingSuggestions) {
+      const matched = businessReport.marketingSuggestions.find((s: any) => s.title === templateTitle);
+      if (matched) {
+        currentDesc = matched.desc;
+      }
+    }
+
+    // Find conversion rate
+    let total = 0;
+    let converted = 0;
+    outreachRecords.forEach(rec => {
+      if (rec.outreachTemplate === templateTitle) {
+        total++;
+        if (rec.isConverted) converted++;
+      }
+    });
+    const currentConversionRate = total > 0 ? ((converted / total) * 100).toFixed(1) : "0.0";
+
+    try {
+      const res = await fetch("/api/gemini/optimize-template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateTitle,
+          currentDesc,
+          currentConversionRate
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.optimizedVersions) {
+        setOptimizedAlternatives(data.optimizedVersions);
+        triggerToast("✨ AI 优化方案构筑成功，点击下方任一方案一键替换！");
+      } else {
+        triggerToast("🤖 AI 服务暂时繁忙，请稍后重试");
+      }
+    } catch (err) {
+      console.error("Failed to optimize template via AI:", err);
+      triggerToast("💥 触达优化请求发生网络异常");
+    } finally {
+      setLoadingOptimization(false);
+    }
+  };
+
+  const handleReplaceTemplate = (newTitle: string, newDesc: string) => {
+    if (!optimizingTemplate) return;
+
+    // 1. Update businessReport suggestions
+    if (businessReport && businessReport.marketingSuggestions) {
+      const updatedSuggestions = businessReport.marketingSuggestions.map((s: any) => {
+        if (s.title === optimizingTemplate) {
+          return { ...s, title: newTitle, desc: newDesc };
+        }
+        return s;
+      });
+      setBusinessReport({
+        ...businessReport,
+        marketingSuggestions: updatedSuggestions
+      });
+    }
+
+    // 2. Update existing outreach records template name
+    setOutreachRecords(prev => prev.map(rec => {
+      if (rec.outreachTemplate === optimizingTemplate) {
+        return { ...rec, outreachTemplate: newTitle };
+      }
+      return rec;
+    }));
+
+    // 3. Update the select field state if it was using the old template
+    if (outreachTemplate === optimizingTemplate) {
+      setOutreachTemplate(newTitle);
+    }
+
+    triggerToast(`⚡ 成功一键替换！「${newTitle}」现已生效并投入追踪！`);
+    setOptimizingTemplate(null);
+    setOptimizedAlternatives([]);
+  };
+
+  const handleAddOutreachRecord = () => {
+    if (!outreachCustName.trim()) {
+      triggerToast("请输入客户昵称或标识！");
+      return;
+    }
+    const timeStr = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const newRec: OutreachRecord = {
+      id: 'outreach_' + Date.now(),
+      customerName: outreachCustName.trim(),
+      outreachChannel: outreachChannel,
+      outreachTemplate: outreachTemplate,
+      sentTime: timeStr,
+      hasReplied: false,
+      isConverted: false
+    };
+    setOutreachRecords(prev => [newRec, ...prev]);
+    setOutreachCustName('');
+    triggerToast(`✨ 成功录入触达记录：${newRec.customerName}`);
+  };
+
+  const handleToggleReplied = (id: string) => {
+    setOutreachRecords(prev => prev.map(rec => {
+      if (rec.id === id) {
+        const nextVal = !rec.hasReplied;
+        return { 
+          ...rec, 
+          hasReplied: nextVal,
+          isConverted: nextVal ? rec.isConverted : false
+        };
+      }
+      return rec;
+    }));
+    triggerToast("已更新客户回复状态");
+  };
+
+  const handleToggleConverted = (id: string) => {
+    setOutreachRecords(prev => prev.map(rec => {
+      if (rec.id === id) {
+        const nextVal = !rec.isConverted;
+        return { 
+          ...rec, 
+          isConverted: nextVal,
+          hasReplied: nextVal ? true : rec.hasReplied
+        };
+      }
+      return rec;
+    }));
+    triggerToast("已更新客户实际成交状态");
+  };
+
+  const handleDeleteOutreachRecord = (id: string) => {
+    setOutreachRecords(prev => prev.filter(rec => rec.id !== id));
+    triggerToast("触达记录已删除");
+  };
+
 
   useEffect(() => {
     if (financeActiveTab === 'breakdown' && !businessReport && orders.length > 0) {
@@ -2368,7 +2617,266 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
                               ))}
                             </div>
                           </div>
+
+                          {/* 🎯 营销触达效果追踪 (Outreach Effectiveness Tracker) */}
+                          <div className="pt-4 border-t border-white/5 space-y-4 mt-5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-white/80 flex items-center gap-1.5">
+                                <TrendingUp className="w-3.5 h-3.5 text-[#FFD700] animate-pulse" />
+                                <span>营销触达效果追踪 (AI-Powered Outreach Effectiveness Tracker)</span>
+                              </span>
+                              <span className="text-[8px] bg-[#FFD700]/10 text-[#FFD700] px-1.5 py-0.5 rounded border border-[#FFD700]/20 font-mono font-bold">
+                                实操转化效果雷达
+                              </span>
+                            </div>
+
+                            {/* 1. Template Conversion Rates Matrix */}
+                            {(() => {
+                              const statsMap: { [key: string]: { total: number; replied: number; converted: number } } = {};
+                              outreachRecords.forEach(rec => {
+                                const template = rec.outreachTemplate || '微信日常温情周年关怀';
+                                if (!statsMap[template]) {
+                                  statsMap[template] = { total: 0, replied: 0, converted: 0 };
+                                }
+                                statsMap[template].total++;
+                                if (rec.hasReplied) statsMap[template].replied++;
+                                if (rec.isConverted) statsMap[template].converted++;
+                              });
+
+                              return (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                  {Object.entries(statsMap).map(([template, stats]) => {
+                                    const convRate = stats.total > 0 ? ((stats.converted / stats.total) * 100).toFixed(1) : "0.0";
+                                    const replyRate = stats.total > 0 ? ((stats.replied / stats.total) * 100).toFixed(1) : "0.0";
+                                    const isLow = stats.total > 0 && parseFloat(convRate) < 5.0;
+
+                                    return (
+                                      <div 
+                                        key={template} 
+                                        className={`p-2.5 rounded-xl space-y-1.5 border transition duration-300 ${
+                                          isLow 
+                                            ? "bg-red-950/20 border-red-500/30 shadow-lg shadow-red-950/25" 
+                                            : "bg-zinc-950 border-white/5"
+                                        }`}
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="text-[9.5px] font-bold text-white/90 line-clamp-1 flex-1 font-sans">
+                                            📋 {template}
+                                          </span>
+                                          <div className="flex flex-col items-end gap-1 shrink-0">
+                                            <span className={`text-[9px] font-mono font-black ${isLow ? "text-red-400" : "text-[#FFD700]"}`}>
+                                              转化率: {convRate}%
+                                            </span>
+                                            {isLow && (
+                                              <span className="text-[7px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/25 font-bold animate-pulse">
+                                                ⚠️ 转化偏低
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Progress Bar Visualizer */}
+                                        <div className="space-y-1">
+                                          <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex">
+                                            <div 
+                                              className="bg-green-400 h-full transition-all duration-300" 
+                                              style={{ width: `${replyRate}%` }}
+                                            />
+                                            <div 
+                                              className={`h-full transition-all duration-300 ${isLow ? "bg-red-500" : "bg-[#FFD700]"}`}
+                                              style={{ width: `${convRate}%` }}
+                                            />
+                                          </div>
+                                          <div className="flex justify-between text-[7.5px] text-white/40 font-mono">
+                                            <span>已发送 {stats.total} 份</span>
+                                            <span>回复率 {replyRate}%</span>
+                                            <span>成交 {stats.converted} 单</span>
+                                          </div>
+                                        </div>
+
+                                        {/* AI Optimization Option specifically for low converting copy templates */}
+                                        {isLow && (
+                                          <button
+                                            onClick={() => handleTriggerTemplateOptimization(template)}
+                                            className="w-full mt-1.5 py-1 bg-red-600/90 hover:bg-red-500 text-white text-[8.5px] font-bold rounded-lg transition active:scale-95 flex items-center justify-center gap-1 font-sans cursor-pointer shadow shadow-red-950/40"
+                                          >
+                                            💡 AI 优化建议
+                                          </button>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+
+                            {/* 2. Manual Add Form Inline */}
+                            <div className="p-3 bg-white/5 border border-white/5 rounded-2xl space-y-2 text-left">
+                              <div className="text-[9px] text-[#FFD700]/80 font-bold font-sans">
+                                ➕ 录入新客户触达记录 (Manual Outreach Record Logging)
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                  <label className="text-[8px] text-white/40 block mb-0.5">客户名称/微信/标识</label>
+                                  <input
+                                    type="text"
+                                    placeholder="如: 李总 (上海私域)"
+                                    value={outreachCustName}
+                                    onChange={(e) => setOutreachCustName(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:border-[#FFD700] focus:outline-none placeholder-white/20"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[8px] text-white/40 block mb-0.5">触达渠道</label>
+                                  <select
+                                    value={outreachChannel}
+                                    onChange={(e) => setOutreachChannel(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:border-[#FFD700] focus:outline-none"
+                                  >
+                                    <option value="微信私域">微信私域</option>
+                                    <option value="小红书DM">小红书DM</option>
+                                    <option value="短信">短信</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-[8px] text-white/40 block mb-0.5">选用话术模板</label>
+                                  <select
+                                    value={outreachTemplate}
+                                    onChange={(e) => setOutreachTemplate(e.target.value)}
+                                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:border-[#FFD700] focus:outline-none truncate"
+                                  >
+                                    {businessReport.marketingSuggestions?.map((s: any, i: number) => (
+                                      <option key={i} value={s.title}>{s.title}</option>
+                                    )) || <option value="针对高价值复购用户，推行「周年情感复刻计划」">针对高价值复购用户，推行「周年情感复刻计划」</option>}
+                                    <option value="针对高价值复购用户，推行「周年情感复刻计划」">针对高价值复购用户，推行「周年情感复刻计划」</option>
+                                    <option value="上海徐汇等长三角地区高品质「专属版」精准拉新">上海徐汇等长三角地区高品质「专属版」精准拉新</option>
+                                    <option value="利用异地恋「双城故事」及高铁票场景，重仓小红书KOL情感投放">利用异地恋「双城故事」及高铁票场景，重仓小红书KOL情感投放</option>
+                                    <option value="微信日常温情周年关怀">微信日常温情周年关怀</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="flex justify-end pt-1">
+                                <button
+                                  onClick={handleAddOutreachRecord}
+                                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black text-[9px] font-bold px-3 py-1 rounded-lg transition active:scale-95 cursor-pointer font-sans"
+                                >
+                                  📥 录入并开启追踪
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 3. The Logs Table */}
+                            <div className="space-y-1.5 text-left">
+                              <div className="text-[9.5px] text-white/60 font-bold font-sans flex justify-between items-center">
+                                <span>📋 触达明细台账 (Toggle reply/converted status to calculate conversion rates dynamically)</span>
+                                <span className="text-[8px] text-white/30 font-normal">共 {outreachRecords.length} 条记录</span>
+                              </div>
+                              
+                              <div className="border border-white/5 rounded-2xl overflow-hidden bg-black/40 text-[10px] text-white/80 font-sans max-h-[220px] overflow-y-auto">
+                                <table className="w-full text-left border-collapse">
+                                  <thead>
+                                    <tr className="bg-white/5 text-[8px] text-white/40 border-b border-white/5 uppercase font-mono">
+                                      <th className="py-2 px-3 font-normal">客户标识</th>
+                                      <th className="py-2 px-3 font-normal">渠道</th>
+                                      <th className="py-2 px-3 font-normal">选用话术模板</th>
+                                      <th className="py-2 px-3 font-normal text-center">回复状态 (Has Replied)</th>
+                                      <th className="py-2 px-3 font-normal text-center">成交状态 (Converted)</th>
+                                      <th className="py-2 px-3 font-normal text-center">操作</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5 font-sans">
+                                    {outreachRecords.map((rec) => {
+                                      const recTemplate = rec.outreachTemplate || '微信日常温情周年关怀';
+                                      const recAll = outreachRecords.filter(r => r.outreachTemplate === recTemplate);
+                                      const recConvertedCount = recAll.filter(r => r.isConverted).length;
+                                      const recTotalCount = recAll.length;
+                                      const recConvRateVal = recTotalCount > 0 ? (recConvertedCount / recTotalCount) * 100 : 0;
+                                      const isRowLow = recTotalCount > 0 && recConvRateVal < 5.0;
+
+                                      return (
+                                        <tr key={rec.id} className={`hover:bg-white/[0.02] transition ${isRowLow ? "bg-red-500/[0.02]" : ""}`}>
+                                          <td className="py-2 px-3">
+                                            <span className="font-bold text-white block truncate max-w-[120px]">{rec.customerName}</span>
+                                            <span className="text-[7.5px] text-white/30 block mt-0.5 font-mono">⏱️ {rec.sentTime || '未知'}</span>
+                                          </td>
+                                          <td className="py-2 px-3">
+                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+                                              rec.outreachChannel === '微信私域' ? 'bg-green-500/10 text-green-400' :
+                                              rec.outreachChannel === '小红书DM' ? 'bg-red-500/10 text-red-400' :
+                                              'bg-blue-500/10 text-blue-400'
+                                            }`}>
+                                              {rec.outreachChannel}
+                                            </span>
+                                          </td>
+                                          <td className="py-2 px-3 max-w-[150px] truncate text-[9px]" title={rec.outreachTemplate}>
+                                            <div className="flex items-center gap-1.5">
+                                              {isRowLow && (
+                                                <span className="text-[7.5px] text-red-400 bg-red-500/10 border border-red-500/20 px-1 py-0.2 rounded shrink-0 font-bold animate-pulse">
+                                                  ⚠️ 低效
+                                                </span>
+                                              )}
+                                              <span className="truncate">{rec.outreachTemplate}</span>
+                                            </div>
+                                          </td>
+                                          <td className="py-2 px-3 text-center">
+                                            <button
+                                              onClick={() => handleToggleReplied(rec.id)}
+                                              className={`px-2 py-0.5 rounded text-[8.5px] font-bold transition cursor-pointer ${
+                                                rec.hasReplied
+                                                  ? 'bg-green-400/20 text-green-400 border border-green-500/20'
+                                                  : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
+                                              }`}
+                                            >
+                                              {rec.hasReplied ? '💬 已回复' : '❌ 未回复'}
+                                            </button>
+                                          </td>
+                                          <td className="py-2 px-3 text-center">
+                                            <button
+                                              onClick={() => handleToggleConverted(rec.id)}
+                                              className={`px-2 py-0.5 rounded text-[8.5px] font-bold transition cursor-pointer ${
+                                                rec.isConverted
+                                                  ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/20 font-black'
+                                                  : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
+                                              }`}
+                                            >
+                                              {rec.isConverted ? '💰 已成交' : '⌛ 未成交'}
+                                            </button>
+                                          </td>
+                                          <td className="py-2 px-3 text-center">
+                                            <button
+                                              onClick={() => handleDeleteOutreachRecord(rec.id)}
+                                              className="text-[9px] text-red-400 hover:text-red-300 font-bold transition font-sans cursor-pointer"
+                                            >
+                                              删除
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                    {outreachRecords.length === 0 && (
+                                      <tr>
+                                        <td colSpan={6} className="text-center py-6 text-white/30 font-sans text-[9.5px]">
+                                          🫙 暂无任何触达追踪明细。点击上方营销建议中的「⚡ 一键执行并同步」按钮即可立刻自动添加。
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                            {/* 📊 一键导出 CSV / Excel 转化数据报表 (Export to CSV / Excel Button) */}
+                            <div className="flex justify-end pt-2">
+                              <button
+                                onClick={handleExportOutreachCSV}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white text-[9.5px] font-bold px-3.5 py-1.5 rounded-xl transition active:scale-95 cursor-pointer flex items-center gap-1.5 font-sans"
+                              >
+                                📊 一键导出触达转化台账 (CSV/Excel)
+                              </button>
+                            </div>
+                          </div>
                         </div>
+
                       ) : (
                         <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col items-center justify-center space-y-2 py-6 text-center">
                           <span className="text-[10px] text-white/40 font-sans">暂无缓存报告数据。点击下方按钮，由阿紫 AI 经营顾问开启对大盘订单的波动与复购多维研判。</span>
@@ -4725,6 +5233,113 @@ ${order.lyrics ? order.lyrics : '（暂无已生成的AI歌词，请在需求详
           </div>
         </div>
       )}
+
+      {/* 🤖 AI 智能营销话术诊断与优化 (AI Copywriting Optimization Modal) */}
+      {optimizingTemplate && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn text-left font-sans">
+          <div className="w-full max-w-xl bg-zinc-950 border border-[#FFD700]/30 rounded-3xl p-6 shadow-2xl shadow-black/80 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="space-y-0.5">
+                <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span className="text-[#FFD700] animate-pulse">🤖</span>
+                  <span>阿紫 AI 智能营销话术诊断与优化 (Gemini Copywriting Optimizer)</span>
+                </h3>
+                <p className="text-[9px] text-white/40">
+                  正在通过 Gemini 研判分析转化率较低 (&lt;5.0%) 的低能效策略
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setOptimizingTemplate(null);
+                  setOptimizedAlternatives([]);
+                }}
+                className="text-white/40 hover:text-white hover:bg-white/5 px-2 py-1 rounded text-[10px] transition font-sans font-bold cursor-pointer"
+              >
+                ✕ 关闭
+              </button>
+            </div>
+
+            {/* Target Info */}
+            <div className="p-3 bg-white/5 border border-white/5 rounded-2xl space-y-1">
+              <span className="text-[8px] text-white/40 uppercase block">诊断目标话术模板</span>
+              <span className="text-xs font-bold text-[#FFD700] block">{optimizingTemplate}</span>
+              {(() => {
+                let currentDesc = "";
+                if (businessReport && businessReport.marketingSuggestions) {
+                  const matched = businessReport.marketingSuggestions.find((s: any) => s.title === optimizingTemplate);
+                  if (matched) currentDesc = matched.desc;
+                }
+                return currentDesc ? (
+                  <p className="text-[10px] text-white/60 leading-relaxed font-light mt-1">
+                    当前文案/策略: {currentDesc}
+                  </p>
+                ) : null;
+              })()}
+            </div>
+
+            {/* Loading State */}
+            {loadingOptimization ? (
+              <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
+                <p className="text-[10.5px] text-white/60 font-sans">
+                  正在激活阿紫 AI 营销脑图，深度改写高转化销售心智话术...
+                </p>
+                <div className="text-[8px] text-white/30 font-mono space-y-0.5">
+                  <div>[STATION] Running diagnostic queries...</div>
+                  <div>[GEMINI] Analyzing user purchase dropout friction...</div>
+                  <div>[PROMPT] Formulating 3 psychological hooks...</div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-[9.5px] text-[#FFD700]/80 font-bold uppercase tracking-wider font-sans">
+                  🌟 AI 已为您精选生成 3 套高转化替换话术 (一键采用即可覆盖全系统)：
+                </div>
+
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                  {optimizedAlternatives.map((alt, idx) => (
+                    <div key={idx} className="p-3.5 bg-zinc-900 border border-white/10 hover:border-[#FFD700]/30 rounded-2xl space-y-2 transition group">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-black text-[#FFD700] bg-[#FFD700]/10 px-1.5 py-0.5 rounded font-sans">
+                          方案 {idx + 1}: {alt.title}
+                        </span>
+                        <button
+                          onClick={() => handleReplaceTemplate(alt.title, alt.desc)}
+                          className="text-[9.5px] text-black bg-[#FFD700] hover:bg-yellow-400 font-bold px-2.5 py-1 rounded-xl transition active:scale-95 shrink-0 font-sans cursor-pointer"
+                        >
+                          ⚡ 一键采用并替换
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-white/70 leading-relaxed font-light">
+                        {alt.desc}
+                      </p>
+                    </div>
+                  ))}
+                  {optimizedAlternatives.length === 0 && (
+                    <div className="text-center py-6 text-white/30 text-[10px]">
+                      未能正确获取到建议，请尝试点击下方重新请求优化。
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                  <span className="text-[8px] text-white/30">
+                    * 一键替换后将同步更新经营建议看板、手工录入选项，并智能延续历史台账。
+                  </span>
+                  <button
+                    onClick={() => handleTriggerTemplateOptimization(optimizingTemplate)}
+                    className="text-[9px] text-[#FFD700] bg-[#FFD700]/10 hover:bg-[#FFD700]/20 border border-[#FFD700]/20 px-2.5 py-1 rounded-lg transition active:scale-95 font-sans cursor-pointer"
+                  >
+                    🔄 重新生成方案
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <footer className="h-10 border-t border-white/10 px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between text-[9px] text-white/30 uppercase tracking-widest bg-black/60 backdrop-blur shrink-0">
         <div className="flex gap-4 md:gap-6 py-1">
           <span>Backend: Node Node-Express Engine</span>

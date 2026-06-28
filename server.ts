@@ -868,6 +868,147 @@ You must respond in a valid JSON object matching the requested schema. Avoid any
   return res.json(fallbackReport);
 });
 
+// 13. API: AI Copywriting Template Optimizer
+app.post("/api/gemini/optimize-template", async (req, res) => {
+  const { templateTitle, currentDesc, currentConversionRate } = req.body;
+
+  if (!templateTitle) {
+    return res.status(400).json({ error: "templateTitle is required" });
+  }
+
+  const systemPrompt = `You are a Senior Conversion Rate Optimization (CRO) Copywriting Specialist. 
+Your goal is to optimize a customized music studio's (阿紫音乐工作室) low-converting marketing template to boost its user response and purchase rates.
+You will receive:
+- Template Title
+- Current Description
+- Current Conversion Rate
+
+Please generate exactly 3 highly persuasive, alternative versions in Chinese that solve the low conversion rate (either by raising emotional touch, reducing friction, or clarifying value).
+Each version must include:
+1. title: A catchy, actionable new title.
+2. desc: A highly-persuasive, detailed outreach message/strategy description.
+
+You must respond with a valid JSON object matching the requested schema. Avoid any conversational wrappers.`;
+
+  const userPrompt = `
+  - 话术标题: ${templateTitle}
+  - 当前内容/策略: ${currentDesc || "暂无描述"}
+  - 当前成交转化率: ${currentConversionRate || "0.0"}% (处于警戒线，急需优化!)
+  
+  请为我们提供三个高转化、高触动人心、实操性极强的改进版方案。
+  `;
+
+  if (aiClient) {
+    try {
+      console.log("Calling Gemini 3.5 Flash to optimize copywriting template:", templateTitle);
+      const response = await aiClient.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: userPrompt,
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              optimizedVersions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING, description: "改进版的标题" },
+                    desc: { type: Type.STRING, description: "具体的营销文案、策略或首选触达话术" }
+                  },
+                  required: ["title", "desc"]
+                }
+              }
+            },
+            required: ["optimizedVersions"]
+          }
+        }
+      });
+
+      const responseText = response.text || "";
+      try {
+        const parsedJson = JSON.parse(responseText.trim());
+        return res.json({ success: true, ...parsedJson, isRealAi: true });
+      } catch (e) {
+        const cleanedText = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
+        const parsedCleaned = JSON.parse(cleanedText);
+        return res.json({ success: true, ...parsedCleaned, isRealAi: true });
+      }
+    } catch (apiError) {
+      console.error("Gemini optimize-template API call failed, using high-quality dynamic fallback...", apiError);
+    }
+  }
+
+  // Fallback optimized versions based on the specific templateTitle
+  const fallbackOptimizations: { [key: string]: any[] } = {
+    "针对高价值复购用户，推行「周年情感复刻计划」": [
+      {
+        title: "✨「结婚十年·真爱复刻」特惠金婚专属计划",
+        desc: "针对已定制过结婚周年的高端老客，由原班作词/作曲老师亲手制作续作。提供更宏大的弦乐实录，前奏无缝拼接当年的旧作，创造时空穿梭的极致感动，并随单附赠定制黑胶唱片与全家福歌词纪念册。专属首发特惠仅 ¥998 (原价 ¥1397)。"
+      },
+      {
+        title: "💖「让旋律见证时光」老客专属周年温暖回访",
+        desc: "发送亲切、无推销感的温情私信：‘张先生您好，还记得去年的《那年栀子花开》吗？又是一年纪念日将至，阿紫老师特别为您准备了专属音轨升华体验券。老客特惠，仅需 ¥298 即可续写你们最新的生活篇章，把这一年的新故事谱进歌里。’"
+      },
+      {
+        title: "🎁「情感盲盒复购」周年低门槛朋友圈裂变礼券",
+        desc: "推出裂变方案：‘老客定制周年纪念，可额外免费获得 2 张价值 ¥99 的「双人盲盒音乐贺卡」兑换券，可赠予闺蜜或备婚好友。’大幅度降低信任门槛，让老客心甘情愿发朋友圈推荐，拉新复购双管齐下。"
+      }
+    ],
+    "利用异地恋「双城故事」及高铁票场景，重仓小红书KOL情感投放": [
+      {
+        title: "🎫「高铁票拼出的歌」小红书现象级情侣打卡文案",
+        desc: "主打视觉泪点：将情侣积攒的一叠异地高铁票作为MV封面背景，文案：‘113张车票，5万公里奔波，终于变成了这首专属我们的《双城日记》。写歌，是异地恋最奢侈的告白。’重点投放异地恋、情感树洞类KOL，买单率直接提升200%。"
+      },
+      {
+        title: "💌「异地恋救赎热线」盲盒款写歌低门槛切入",
+        desc: "主推 ¥99 极速体验款。广告策略：‘只要提供你们相隔的两座城市，和最想和对方说的 3 句话，AI 音乐助手 10 分钟内为你们定制一首民谣。异地不孤单，歌声陪你过夜。’大大降低决策阻力，极易在高校社群和抖音形成自主传播。"
+      },
+      {
+        title: "🚄「双城晴雨卡」异地恋微信温情自动触达",
+        desc: "管理员私信：‘小林您好，注意到您在广州定制了盲盒，听对方说今天北京下大雨了，阿紫特别为你们调音了下雨背景声。这里有一份异地专属的 ¥50 加购券，可以直接将盲盒升级为 ¥298 完整R&B温暖版，要不要给TA今晚一个惊喜？’"
+      }
+    ],
+    "上海徐汇等长三角地区高品质「专属版」精准拉新": [
+      {
+        title: "🏙️「徐汇中产私域」轻奢交响乐定制",
+        desc: "放弃廉价词汇，改用‘艺术资产’、‘声音纪念碑’等雅致词汇。搭配上海地标航拍作为MV底片。主打 ¥1397 元专属版套餐，赠送全铜定制复古留声机U盘，迎合上海及长三角中产阶层对高品质艺术格调与仪式感的追求。"
+      },
+      {
+        title: "🎻「浪漫法租界」老法师手作定制音乐展演",
+        desc: "线下线上联动：‘长三角客户写下的每一首音乐故事，都将有机会免费入选上海衡复风貌区「浪漫秋日微音乐展」。’以此极大地提升客户的荣誉感、分享欲和朋友圈自发传播率，吸引高溢价客户。"
+      },
+      {
+        title: "🍷「红酒与唱针」周年高端沙龙特邀回访话术",
+        desc: "‘尊贵的上海老客您好，阿紫音乐工作室徐汇首发体验店特惠，本月定制「专属交响版」可免费尊享由专业咖啡师/调酒师为您定制的「双人音乐品鉴下午茶沙龙」。定制音乐，不止于听，更在于一次充满仪式感的高雅生活美学体验。’"
+      }
+    ]
+  };
+
+  const selectedOptimizations = fallbackOptimizations[templateTitle] || [
+    {
+      title: `✨「情感升华款」${templateTitle} 改进版`,
+      desc: `基于当前低于5%的低转化转化率进行重新润色：‘亲爱的老客，阿紫老师记得您定制的那首歌。在这个值得纪念的日子，我们全新推出了2026最新高保真重低音版，原价¥1397老客专属特惠仅需¥498，把时间定格在歌声里。’`
+    },
+    {
+      title: `🎁「低门槛限时特惠」${templateTitle} 改进版`,
+      desc: "采用限时饥饿营销话术，增加倒计时或名额限制：‘本月仅限前20名定制，随单附赠高档发光水晶音乐盒。如果您觉得之前的歌还不错，一定要看看这次的升级，成交率成倍提升！’"
+    },
+    {
+      title: `🎯「痛点爆款直击」${templateTitle} 改进版`,
+      desc: "直击受众痛点和核心利益点，采用更加富有动感和小红书风格的排版：‘异地恋/结婚周年送什么？送包包会过期，写首歌听一辈子！支持一键同步微信，免费制作精美歌词海报视频。’"
+    }
+  ];
+
+  return res.json({
+    success: true,
+    optimizedVersions: selectedOptimizations,
+    isRealAi: false
+  });
+});
+
 // Start Full-Stack App Port Binding
 async function startServer() {
   const PORT = 3000;
